@@ -73,7 +73,7 @@ export const sessions = sqliteTable("session", {
   expiresAt: integer("expires_at").notNull(),
 });
 
-export const task = sqliteTable("tasks", {
+export const tasks = sqliteTable("tasks", {
   id: integer("id", { mode: "number"}).primaryKey({
     autoIncrement: true
   }),
@@ -98,4 +98,4 @@ export const task = sqliteTable("tasks", {
 
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
-export type Task = typeof task.$inferSelect;
+export type Task = typeof tasks.$inferSelect;

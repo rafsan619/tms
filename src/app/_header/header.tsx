@@ -23,12 +23,12 @@ export async function Header() {
   const user = await getCurrentUser();
 
   return (
-    <div className="border-b py-4">
+    <div className="h-16 border-b py-3">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 text-xl">
             <Lightbulb />
-            <div className="hidden md:block">APP</div>
+            <div className="hidden md:block">TMS</div>
           </Link>
 
           <div className="flex items-center gap-2">

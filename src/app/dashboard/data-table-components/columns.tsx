@@ -1,14 +1,23 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "./data-table-column-header";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, FilePenLine, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableRowActions } from "./data-table-row-actions";
+import { DataTableColumnHeader } from "./data-table-column-header";
 import { Expense } from "./schema";
+import { Task } from "@/db/schema";
+import { Switch } from "@/components/ui/switch";
+import { useState, useTransition } from "react";
+import { toggleTask } from "@/actions/taskActions";
+import { toast } from "sonner";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { Button } from "@/components/ui/button";
+import { EditTaskDialog } from "@/components/edit-task-dialog";
+import { DeleteTaskDialog } from "@/components/delete-tasks-dialog";
 
-export const columns: ColumnDef<Expense>[] = [
+export const columns: ColumnDef<Task>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -34,109 +43,133 @@ export const columns: ColumnDef<Expense>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "label",
+    accessorKey: "title",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Label" />
+      <DataTableColumnHeader column={column} title="Title" />
     ),
     cell: ({ row }) => (
-      <div className="w-[150px] capitalize">{row.getValue("label")}</div>
+      <div className="w-[150px] capitalize">{row.getValue("title")}</div>
     ),
     enableSorting: false,
     enableHiding: false,
   },
   {
-    accessorKey: "note",
+    accessorKey: "description",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Note" />
+      <DataTableColumnHeader column={column} title="Description" />
     ),
     cell: ({ row }) => {
+      const rawDescription = row.getValue("description");
+
+      // Check if Description is coming from data
+      const isDescriptionTrue =
+        typeof rawDescription === "string" && rawDescription.trim();
+
       return (
         <div className="flex space-x-2">
-          <span className="max-w-[500px] truncate font-medium capitalize">
-            {row.getValue("note")}
+          <span
+            className={cn("max-w-[400px] truncate font-medium capitalize", {
+              "font-normal text-muted-foreground": !isDescriptionTrue,
+            })}
+          >
+            {/* {isDescriptionTrue ? rawDescription : "-"} */}
+            {isDescriptionTrue ? rawDescription : "no description"}
           </span>
         </div>
       );
     },
+    // enableSorting: false,
+    enableHiding: true,
   },
   {
-    accessorKey: "category",
+    accessorKey: "completed",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category" />
+      <DataTableColumnHeader column={column} title="Completed" />
     ),
     cell: ({ row }) => {
+      const [isToggleTaskPending, setToggleTaskTransition] = useTransition();
+
+      async function handleToggleTask() {
+        setToggleTaskTransition(async () => {
+          try {
+            const currentCompletedStatus = row.getValue("completed");
+            await toggleTask(row.original.id);
+
+            if (currentCompletedStatus) {
+              toast.success("Task marked as not completed.");
+            } else {
+              toast.success("Task marked as completed.");
+            }
+          } catch (error) {
+            toast.error(
+              `There was an error - ${error} updating the task status.`,
+            );
+            console.error(error);
+          }
+        });
+      }
+
       return (
         <div className="flex w-[100px] items-center">
-          <span className="capitalize"> {row.getValue("category")}</span>
+          <span>
+            {isToggleTaskPending ? (
+              <ReloadIcon
+                className="mr-2 size-4 animate-spin"
+                aria-hidden="true"
+              />
+            ) : (
+              <Switch
+                checked={row.getValue("completed")}
+                onCheckedChange={handleToggleTask}
+              />
+            )}
+          </span>
         </div>
       );
     },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
+    enableSorting: true,
+    enableHiding: false,
   },
+
   {
-    accessorKey: "type",
+    accessorKey: "dueDate",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
+      <DataTableColumnHeader column={column} title="Due Date" />
     ),
     cell: ({ row }) => {
-      const type = row.getValue("type");
-      return (
-        <div className="flex w-[100px] items-center">
-          {type === "income" ? (
-            <TrendingUp size={20} className="mr-2 text-green-500" />
-          ) : (
-            <TrendingDown size={20} className="mr-2 text-red-500" />
-          )}
-          <span className="capitalize"> {row.getValue("type")}</span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
-    accessorKey: "amount",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Amount" />
-    ),
-    cell: ({ row }) => {
-      const type = row.getValue("type");
+      const dueDate = row.getValue("dueDate");
+
+      // let formattedDate = "-";
+      let formattedDate = "Not set";
+      let isValidDate = false;
+
+      // Check if dueDate is a valid string or number
+      if (dueDate) {
+        // Handle date conversion more robustly
+        const dateValue = new Date(row.getValue("dueDate"));
+
+        // Check if the date is valid
+        isValidDate = !isNaN(dateValue.getTime());
+        if (isValidDate) {
+          formattedDate = dateValue.toLocaleDateString("en-US", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+        } else {
+          formattedDate = "Not set";
+        }
+      }
+
       return (
         <div className="flex w-[100px] items-center">
           <span
-            className={cn(
-              "capitalize",
-              type === "income" ? "text-green-500" : "text-red-500",
-            )}
+            className={cn({
+              "font-normal text-muted-foreground": !isValidDate,
+            })}
           >
-            {" "}
-            {row.getValue("amount")}
+            {formattedDate}
           </span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
-    accessorKey: "date",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date" />
-    ),
-    cell: ({ row }) => {
-      const date = new Date(row.getValue("date"));
-      const formattedDate = date.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-      return (
-        <div className="flex w-[100px] items-center">
-          <span className="capitalize">{formattedDate}</span>
         </div>
       );
     },
@@ -148,6 +181,43 @@ export const columns: ColumnDef<Expense>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => <DataTableRowActions row={row} />,
+    cell: ({ row }) => {
+      const [showEditTaskDialog, setShowEditTaskDialog] = useState(false);
+      const [showDeleteTaskDialog, setShowDeleteTaskDialog] = useState(false);
+
+      return (
+        <div className="flex justify-center gap-2">
+          <EditTaskDialog
+            task={row.original}
+            open={showEditTaskDialog}
+            onOpenChange={setShowEditTaskDialog}
+          />
+          <Button
+            size={"sm"}
+            variant="outline"
+            onClick={() => setShowEditTaskDialog(true)}
+          >
+            <FilePenLine className="mr-2 size-4" />
+            Edit
+          </Button>
+
+          <DeleteTaskDialog
+            open={showDeleteTaskDialog}
+            onOpenChange={setShowDeleteTaskDialog}
+            showTrigger={false}
+            onSuccess={() => row.toggleSelected(false)}
+            tasks={[row.original]}
+          />
+          <Button
+            size={"sm"}
+            variant="destructive"
+            onClick={() => setShowDeleteTaskDialog(true)}
+          >
+            <Trash className="mr-2 size-4" />
+            Delete
+          </Button>
+        </div>
+      );
+    },
   },
 ];
