@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/session";
 import { and, asc, eq, inArray, not } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-// Ensure required fields are provided when adding a task
+
 interface NewTask {
   title: string;
   description?: string;
@@ -13,7 +13,7 @@ interface NewTask {
   completed?: boolean;
 }
 
-// Function to add a task for the authenticated user
+
 export const addTask = async (task: NewTask) => {
   const user = await getCurrentUser();
   if (!user) {
@@ -81,14 +81,14 @@ export const editTask = async (task: EditTask) => {
   revalidatePath("/");
 };
 
-// Function to delete one or more tasks for the authenticated user
+
 export const deleteTask = async (taskIds: number | number[]) => {
   const user = await getCurrentUser();
   if (!user) {
     throw new Error("User not authenticated");
   }
 
-  // Ensure taskIds is an array
+ 
   const ids = Array.isArray(taskIds) ? taskIds : [taskIds];
 
   await db

@@ -11,5 +11,6 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL!,
     authToken: process.env.DB_AUTH_TOKEN!,
+    
   },
 });
